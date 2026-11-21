@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0e12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>;)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0d0e12;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#start{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:#0b0a0d;transition:opacity .6s ease}
+#go{min-height:52px;padding:0 28px;border-radius:10px;border:1px solid #3a3a42;background:#17161b;color:#e8e6ee;font:400 15px "JetBrains Mono",ui-monospace,monospace;cursor:pointer;display:flex;align-items:center;gap:12px}
+#go:focus-visible{outline:2px solid #e2557a;outline-offset:3px}
+#go i{width:0;height:0;border-left:11px solid #7fd49b;border-top:7px solid transparent;border-bottom:7px solid transparent}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="start"><button id="go" type="button"><i></i>çalıştır</button></div>
+<div id="ytwrap" aria-hidden="true" style="position:absolute;left:-9999px;top:0;width:200px;height:120px;overflow:hidden;opacity:0;pointer-events:none"><div id="yt"></div></div>
+<script>
+var ytPlayer = null, ytReady = false, ytWant = false;
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt', { videoId: '8inJtTG_DuU', width: 200, height: 120,
+    playerVars: { start: 0, controls: 0, playsinline: 1, rel: 0, modestbranding: 1 },
+    events: { onReady: function () { ytReady = true; if (ytWant) startMusic(); } } });
+}
+function startMusic() { ytWant = true; if (!ytReady || !ytPlayer || !ytPlayer.playVideo) return;
+  try { ytPlayer.unMute(); ytPlayer.setVolume(0); ytPlayer.seekTo(0, true); ytPlayer.playVideo();
+    var v = 0, iv = setInterval(function () { v += 4; ytPlayer.setVolume(Math.min(v, 80)); if (v >= 80) clearInterval(iv); }, 120);
+  } catch (e) {} }
+</script>
+<script src="https://www.youtube.com/iframe_api" async></script>
+<script>
+{
+const SRC = "#!/usr/bin/env python3\n# bloom.py - procedural bouquet renderer\n# v2.4.1  (c) 2026\n\nimport math\nimport random\nimport numpy as np\nfrom dataclasses import dataclass, field\nfrom typing import List, Tuple\n\nPHI = (1 + 5 ** 0.5) / 2\nGOLDEN_ANGLE = math.pi * (3 - math.sqrt(5))\nSEED = 0x51F3\n\nrandom.seed(SEED)\nnp.random.seed(SEED)\n\nPALETTE = {\n    \"rose\":   [(200, 16, 46), (122, 10, 28)],\n    \"blush\":  [(232, 87, 138), (255, 168, 196)],\n    \"daisy\":  [(250, 248, 242), (255, 204, 64)],\n    \"lilac\":  [(155, 107, 255), (204, 170, 255)],\n    \"peach\":  [(255, 154, 90), (255, 206, 150)],\n    \"leaf\":   [(63, 154, 74), (31, 94, 42)],\n}\n\n\n@dataclass\nclass Vec2:\n    x: float\n    y: float\n\n    def __add__(self, o):\n        return Vec2(self.x + o.x, self.y + o.y)\n\n    def scale(self, k):\n        return Vec2(self.x * k, self.y * k)\n\n    def rot(self, a):\n        c, s = math.cos(a), math.sin(a)\n        return Vec2(self.x * c - self.y * s,\n                    self.x * s + self.y * c)\n\n\ndef ease_out(t: float) -> float:\n    return 1 - (1 - t) ** 3\n\n\ndef lerp(a, b, t):\n    return a + (b - a) * t\n\n\ndef mix(c1, c2, t):\n    return tuple(int(lerp(a, b, t))\n                 for a, b in zip(c1, c2))\n\n\n@dataclass\nclass Petal:\n    origin: Vec2\n    angle: float\n    length: float\n    width: float\n    curl: float = 0.0\n    color: Tuple[int, int, int] = (255, 255, 255)\n\n    def outline(self, n: int = 48) -> List[Vec2]:\n        pts = []\n        for i in range(n):\n            t = i / (n - 1)\n            r = math.sin(math.pi * t) ** 0.8\n            w = self.width * r\n            x = self.length * t\n            y = w * math.sin(t * self.curl)\n            p = Vec2(x, y).rot(self.angle)\n            pts.append(self.origin + p)\n        return pts\n\n\nclass Rose:\n    def __init__(self, center, radius, tone=\"rose\"):\n        self.center = center\n        self.radius = radius\n        self.tone = PALETTE[tone]\n        self.petals: List[Petal] = []\n        self._spiral()\n\n    def _spiral(self, layers: int = 7):\n        for k in range(layers * 5):\n            a = k * GOLDEN_ANGLE\n            d = math.sqrt(k / (layers * 5))\n            col = mix(self.tone[1], self.tone[0], d)\n            self.petals.append(Petal(\n                origin=self.center,\n                angle=a,\n                length=self.radius * (0.3 + d),\n                width=self.radius * 0.42 * d,\n                curl=1.6 - d,\n                color=col))\n\n\nclass Daisy:\n    def __init__(self, center, radius, count=21):\n        self.center = center\n        self.radius = radius\n        white, gold = PALETTE[\"daisy\"]\n        self.petals = [\n            Petal(center, i * math.tau / count,\n                  radius, radius * 0.18,\n                  color=white)\n            for i in range(count)]\n        self.disc = (radius * 0.32, gold)\n\n\nclass Tulip:\n    def __init__(self, base, height, tone=\"peach\"):\n        lo, hi = PALETTE[tone]\n        self.cup = [\n            Petal(base, -math.pi / 2 + o,\n                  height, height * 0.36,\n                  curl=0.4, color=mix(lo, hi, 0.3))\n            for o in (-0.28, 0.0, 0.28)]\n\n\n@dataclass\nclass Stem:\n    root: Vec2\n    tip: Vec2\n    bend: float = 0.12\n\n    def sample(self, n=32):\n        mid = Vec2((self.root.x + self.tip.x) / 2\n                   + self.bend * 100,\n                   (self.root.y + self.tip.y) / 2)\n        out = []\n        for i in range(n):\n            t = i / (n - 1)\n            x = ((1 - t) ** 2 * self.root.x\n                 + 2 * (1 - t) * t * mid.x\n                 + t ** 2 * self.tip.x)\n            y = ((1 - t) ** 2 * self.root.y\n                 + 2 * (1 - t) * t * mid.y\n                 + t ** 2 * self.tip.y)\n            out.append(Vec2(x, y))\n        return out\n\n\n@dataclass\nclass Particle:\n    pos: Vec2\n    target: Vec2\n    glyph: str\n    delay: float = 0.0\n    life: float = 0.0\n    trail: List[Vec2] = field(default_factory=list)\n\n    def step(self, dt: float, t: float):\n        k = ease_out(min(1, max(0, t - self.delay)))\n        self.pos = Vec2(lerp(self.pos.x, self.target.x, k),\n                        lerp(self.pos.y, self.target.y, k))\n        self.life += dt\n\n\nclass Bouquet:\n    def __init__(self, w=1080, h=1920):\n        self.w, self.h = w, h\n        c = Vec2(w / 2, h * 0.46)\n        s = min(w, h) * 0.9\n        self.flowers = [\n            Rose(c + Vec2(0, -0.12 * s), 0.16 * s),\n            Rose(c + Vec2(-0.25 * s, 0), 0.12 * s,\n                 tone=\"blush\"),\n            Tulip(c + Vec2(0.26 * s, 0.04 * s),\n                  0.2 * s),\n            Daisy(c + Vec2(-0.1 * s, -0.37 * s),\n                  0.1 * s),\n            Daisy(c + Vec2(0.15 * s, -0.33 * s),\n                  0.09 * s),\n        ]\n        root = c + Vec2(0, 0.58 * s)\n        self.stems = [Stem(root, f_center(f))\n                      for f in self.flowers]\n        self.particles: List[Particle] = []\n\n    def rasterize(self, grid=(54, 80)):\n        cols, rows = grid\n        mask = np.zeros((rows, cols, 3), np.uint8)\n        for f in self.flowers:\n            for p in getattr(f, \"petals\", []):\n                fill_poly(mask, p.outline(), p.color)\n        return mask\n\n    def from_source(self, source: str):\n        glyphs = [ch for ch in source if not ch.isspace()]\n        mask = self.rasterize()\n        ys, xs = np.nonzero(mask.any(axis=2))\n        order = np.random.permutation(len(xs))\n        for i, j in enumerate(order):\n            self.particles.append(Particle(\n                pos=Vec2(random.random() * self.w,\n                         random.random() * self.h),\n                target=Vec2(xs[j], ys[j]),\n                glyph=glyphs[i % len(glyphs)],\n                delay=random.random() * 1.6))\n\n    def bloom(self, fps=60, seconds=6.0):\n        dt = 1 / fps\n        for frame in range(int(fps * seconds)):\n            t = frame * dt\n            for p in self.particles:\n                p.step(dt, t)\n            yield frame, self.particles\n\n\ndef f_center(f) -> Vec2:\n    if hasattr(f, \"center\"):\n        return f.center\n    return f.cup[0].origin\n\n\ndef fill_poly(img, pts, color):\n    h, w = img.shape[:2]\n    for p in pts:\n        x, y = int(p.x) % w, int(p.y) % h\n        img[y, x] = color\n\n\nif __name__ == \"__main__\":\n    with open(__file__) as fh:\n        source = fh.read()\n    bq = Bouquet()\n    bq.from_source(source)\n    for frame, ps in bq.bloom():\n        pass\n    print(\"bloom complete ;)\")";
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const FONT = '"JetBrains Mono","SF Mono",Menlo,Consolas,monospace';
+const COL = { kw: '#c678dd', str: '#98c379', num: '#d19a66', com: '#5c6370', fn: '#61afef', cls: '#e5c07b', def: '#abb2bf', op: '#56b6c2', self: '#e06c75', deco: '#d19a66' };
+const KW = new Set('import from as def class return for in if else elif while with not and or is None True False yield lambda pass try except raise global'.split(' '));
+const BUILTIN = new Set('self range len int float str tuple list zip enumerate print open getattr hasattr min max sum math random np'.split(' '));
+
+// ---- tokenize source into colored chars per line
+function highlight(line) {
+  const out = [];
+  const push = (s, c) => { for (const ch of s) out.push({ ch, c }); };
+  let i = 0, prev = '';
+  while (i < line.length) {
+    const r = line.slice(i);
+    let m;
+    if (r[0] === '#') { push(r, COL.com); break; }
+    if ((m = r.match(/^("[^"]*"?|'[^']*'?)/))) { push(m[0], COL.str); i += m[0].length; prev = ''; continue; }
+    if ((m = r.match(/^@\w+/))) { push(m[0], COL.deco); i += m[0].length; continue; }
+    if ((m = r.match(/^(0x[0-9A-Fa-f]+|\d+\.?\d*)/))) { push(m[0], COL.num); i += m[0].length; continue; }
+    if ((m = r.match(/^[A-Za-z_]\w*/))) {
+      const w = m[0]; let c = COL.def;
+      if (KW.has(w)) c = COL.kw;
+      else if (w === 'self') c = COL.self;
+      else if (prev === 'def') c = COL.fn;
+      else if (prev === 'class' || /^[A-Z][a-z]/.test(w)) c = COL.cls;
+      else if (line[i + w.length] === '(') c = COL.fn;
+      else if (BUILTIN.has(w)) c = COL.op;
+      push(w, c); i += w.length; prev = w; continue;
+    }
+    if ((m = r.match(/^[=+\-*/%<>!&|^~]+/))) { push(m[0], COL.op); i += m[0].length; continue; }
+    push(r[0], COL.def); i++;
+  }
+  return out;
+}
+const LINES = SRC.split('\n').map(highlight);
+const TOTAL = LINES.reduce((a, l) => a + l.length + 1, 0);
+const lineStart = []; { let a = 0; for (const l of LINES) { lineStart.push(a); a += l.length + 1; } }
+const DENSE = '{}[]()<>#@%&$*=+'.split('');
+
+let W, H, DPR, f, cw, lh, gut, rows, cols;
+function setup() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  f = Math.max(9.5, Math.min(14, W / (64 * 0.6)));
+  ctx.font = `400 ${f}px ${FONT}`;
+  cw = ctx.measureText('M').width;
+  lh = Math.round(f * 1.42);
+  gut = cw * 4 + 4;
+  rows = Math.ceil(H / lh) + 1;
+  cols = Math.floor((W - gut - 4) / cw);
+}
+
+// ---- bouquet drawn to an offscreen canvas, sampled as targets
+function drawBouquet(g, cx, cy, S) {
+  const P = (x, y) => [cx + x * S, cy + y * S];
+  // stems
+  const root = P(0, .5);
+  const heads = [[0, -.13], [-.25, -.01], [.26, .0], [-.11, -.37], [.15, -.33], [.35, -.28], [-.36, -.24], [.02, -.5]];
+  g.lineCap = 'round';
+  for (const [hx, hy] of heads) {
+    const [x, y] = P(hx, hy);
+    g.strokeStyle = '#2f7a3a'; g.lineWidth = S * .022;
+    g.beginPath(); g.moveTo(root[0] + hx * S * .08, root[1]);
+    g.quadraticCurveTo(cx + hx * S * .35, cy + .2 * S, x, y); g.stroke();
+  }
+  // leaves
+  const leaf = (x, y, a, L, Wd) => {
+    g.save(); g.translate(...P(x, y)); g.rotate(a);
+    const gr = g.createLinearGradient(0, 0, L * S, 0);
+    gr.addColorStop(0, '#1f5e2a'); gr.addColorStop(.6, '#3f9a4a'); gr.addColorStop(1, '#6cc26a');
+    g.fillStyle = gr; g.beginPath(); g.moveTo(0, 0);
+    g.quadraticCurveTo(L * S * .5, -Wd * S, L * S, 0);
+    g.quadraticCurveTo(L * S * .5, Wd * S, 0, 0); g.fill();
+    g.strokeStyle = 'rgba(20,60,25,.7)'; g.lineWidth = S * .006;
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(L * S * .9, 0); g.stroke();
+    g.restore();
+  };
+  leaf(-.05, .12, -2.5, .3, .07); leaf(.05, .1, -.65, .3, .07);
+  leaf(-.12, .2, -2.9, .26, .06); leaf(.12, .2, -.25, .26, .06);
+  leaf(-.02, .02, -1.95, .22, .05); leaf(.03, -.02, -1.15, .2, .05);
+  // ribbon
+  g.fillStyle = '#e0567a';
+  const [bx, by] = P(0, .33);
+  g.beginPath(); g.ellipse(bx - S * .07, by, S * .07, S * .035, -.35, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(bx + S * .07, by, S * .07, S * .035, .35, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#b8325a'; g.fillRect(bx - S * .028, by - S * .03, S * .056, S * .06);
+  g.fillStyle = '#e0567a';
+  g.beginPath(); g.moveTo(bx - S * .02, by); g.lineTo(bx - S * .09, by + S * .16); g.lineTo(bx - S * .045, by + S * .15); g.closePath(); g.fill();
+  g.beginPath(); g.moveTo(bx + S * .02, by); g.lineTo(bx + S * .09, by + S * .16); g.lineTo(bx + S * .045, by + S * .15); g.closePath(); g.fill();
+
+  const rose = (x, y, r, dark, mid, light) => {
+    const [px, py] = P(x, y); r *= S;
+    for (let k = 0; k < 7; k++) { // outer petals
+      const a = k / 7 * Math.PI * 2 + .3;
+      const gr = g.createRadialGradient(px, py, r * .2, px + Math.cos(a) * r * .5, py + Math.sin(a) * r * .5, r * .75);
+      gr.addColorStop(0, dark); gr.addColorStop(.6, mid); gr.addColorStop(1, light);
+      g.fillStyle = gr; g.beginPath();
+      g.ellipse(px + Math.cos(a) * r * .45, py + Math.sin(a) * r * .45, r * .58, r * .44, a, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = mid; g.beginPath(); g.arc(px, py, r * .62, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = dark; g.lineWidth = r * .15;
+    g.beginPath();
+    for (let t = 0; t < 14; t += .05) { const rr = r * .58 * (1 - t / 14); const xx = px + Math.cos(t) * rr, yy = py + Math.sin(t) * rr; t ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
+    g.stroke();
+    g.strokeStyle = light; g.lineWidth = r * .04;
+    g.beginPath(); g.arc(px - r * .05, py - r * .05, r * .42, 3.6, 5.4); g.stroke();
+  };
+  const daisy = (x, y, r) => {
+    const [px, py] = P(x, y); r *= S;
+    for (let k = 0; k < 18; k++) {
+      const a = k / 18 * Math.PI * 2;
+      g.fillStyle = k % 2 ? '#f4f1ea' : '#ffffff';
+      g.beginPath(); g.ellipse(px + Math.cos(a) * r * .55, py + Math.sin(a) * r * .55, r * .48, r * .13, a, 0, Math.PI * 2); g.fill();
+    }
+    const gr = g.createRadialGradient(px, py, 0, px, py, r * .3);
+    gr.addColorStop(0, '#ffe27a'); gr.addColorStop(1, '#e09a12');
+    g.fillStyle = gr; g.beginPath(); g.arc(px, py, r * .28, 0, Math.PI * 2); g.fill();
+  };
+  const tulip = (x, y, s, c1, c2) => {
+    const [px, py] = P(x, y); s *= S;
+    const gr = g.createLinearGradient(px, py + s * .5, px, py - s * .6);
+    gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+    g.fillStyle = gr;
+    g.beginPath(); g.moveTo(px - s * .38, py - s * .35);
+    g.quadraticCurveTo(px - s * .5, py + s * .45, px, py + s * .45);
+    g.quadraticCurveTo(px + s * .5, py + s * .45, px + s * .38, py - s * .35);
+    g.lineTo(px + s * .18, py - s * .05); g.lineTo(px, py - s * .5); g.lineTo(px - s * .18, py - s * .05); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(160,40,20,.45)'; g.lineWidth = s * .04;
+    g.beginPath(); g.moveTo(px, py + s * .42); g.lineTo(px, py - s * .3); g.stroke();
+  };
+  const sprig = (x, y, a, n, c) => {
+    const [px, py] = P(x, y);
+    for (let i = 0; i < n; i++) {
+      const t = i / n, qx = px + Math.sin(a) * t * S * .16, qy = py - Math.cos(a) * t * S * .16;
+      g.fillStyle = c; g.beginPath(); g.arc(qx + (i % 2 ? 1 : -1) * S * .012, qy, S * (.022 - t * .01), 0, Math.PI * 2); g.fill();
+    }
+  };
+  sprig(.33, -.22, .35, 9, '#9b6bff'); sprig(-.34, -.18, -.4, 9, '#9b6bff'); sprig(.02, -.44, .05, 8, '#b98cff');
+  tulip(.26, 0, .2, '#ff7a3d', '#ffc98f');
+  rose(-.25, -.01, .12, '#9e2457', '#e8578a', '#ffb3cc');
+  daisy(-.11, -.37, .1); daisy(.15, -.33, .09);
+  rose(0, -.13, .16, '#6e0717', '#c8102e', '#ff5a6e');
+  // baby's breath
+  for (let i = 0; i < 40; i++) {
+    const a = i * 2.39996, d = .38 + (i % 7) * .025;
+    const x = Math.cos(a) * d * .95, y = -.15 + Math.sin(a) * d * .9;
+    if (y > .1) continue;
+    g.fillStyle = '#fff6f0'; g.beginPath(); g.arc(...P(x, y), S * .012, 0, Math.PI * 2); g.fill();
+  }
+}
+
+let targets = [], glow = null, cellH;
+function buildTargets() {
+  const oc = document.createElement('canvas'); oc.width = W; oc.height = H;
+  const g = oc.getContext('2d');
+  const S = Math.min(H * .66, W * 1.12);
+  const cx = W / 2, cy = H * .5;
+  drawBouquet(g, cx, cy, S);
+  glow = document.createElement('canvas'); glow.width = W; glow.height = H;
+  const gg = glow.getContext('2d');
+  if ('filter' in gg) { gg.filter = 'blur(14px)'; gg.drawImage(oc, 0, 0); }
+  const data = g.getImageData(0, 0, W, H).data;
+  cellH = Math.round(cw * 1.28);
+  const nx = Math.floor(W / cw), ny = Math.floor(H / cellH);
+  const ox = (W - nx * cw) / 2, oy = (H - ny * cellH) / 2;
+  targets = [];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const x = Math.round(ox + i * cw + cw / 2), y = Math.round(oy + j * cellH + cellH / 2);
+    const k = (y * W + x) * 4;
+    if (data[k + 3] > 140) targets.push({ x: x - cw / 2, y: y, r: data[k], g: data[k + 1], b: data[k + 2] });
+  }
+}
+
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const ease = t => t < 0 ? 0 : t > 1 ? 1 : 1 - Math.pow(1 - t, 3);
+const inout = t => t < 0 ? 0 : t > 1 ? 1 : t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const typed = t => 26 * t + 11 * t * t * t;
+let T_END = 0; while (typed(T_END) < TOTAL) T_END += .01;
+
+let scrollY = 0, parts = null, t0 = 0, running = false;
+const T_HOLD = .9, T_GLITCH = .55, FLY = 2.3, SPREAD = 1.7;
+
+function snapshot(n) {
+  // visible chars become particles
+  const ps = [];
+  const top = Math.floor(scrollY / lh);
+  for (let r = top; r < Math.min(LINES.length, top + rows + 1); r++) {
+    const y = r * lh - scrollY + lh * .5 + 8;
+    LINES[r].forEach((c, ci) => {
+      if (c.ch === ' ' || ci >= cols) return;
+      ps.push({ ch: c.ch, sx: gut + ci * cw, sy: y, c0: hex(c.c), fade: 1 });
+    });
+  }
+  // shuffle
+  for (let i = ps.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ps[i], ps[j]] = [ps[j], ps[i]]; }
+  const tg = targets.slice();
+  for (let i = tg.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [tg[i], tg[j]] = [tg[j], tg[i]]; }
+  const src = SRC.replace(/\s/g, '');
+  while (ps.length < tg.length) {
+    ps.push({ ch: src[Math.random() * src.length | 0], sx: Math.random() * W, sy: Math.random() * H, c0: hex(COL.def), fade: 0 });
+  }
+  const cx = W / 2, cy = H * .5;
+  ps.forEach((p, i) => {
+    p.sw = (Math.random() - .5) * 2;
+    if (i < tg.length) {
+      const q = tg[i];
+      p.t = q; p.c1 = [q.r, q.g, q.b];
+      const d = Math.hypot(q.x - cx, q.y - cy) / Math.max(W, H);
+      p.d = d * SPREAD * .9 + Math.random() * .7;
+      p.dense = DENSE[Math.random() * DENSE.length | 0];
+    } else { p.t = null; p.d = Math.random() * .8; }
+  });
+  return ps;
+}
+
+function frame(now) {
+  if (!running) return;
+  const t = (now - t0) / 1000;
+  ctx.fillStyle = '#0d0e12'; ctx.fillRect(0, 0, W, H);
+  const tf = T_END + T_HOLD + T_GLITCH;
+  if (t < tf) drawCode(t, Math.max(0, (t - T_END - T_HOLD) / T_GLITCH));
+  else {
+    if (!parts) parts = snapshot();
+    drawBloom(t - tf);
+  }
+  requestAnimationFrame(frame);
+}
+
+function drawCode(t, glitch) {
+  const n = Math.min(TOTAL, typed(t));
+  let cl = 0; while (cl + 1 < LINES.length && lineStart[cl + 1] <= n) cl++;
+  const want = Math.max(0, (cl - rows + 4) * lh);
+  scrollY += (want - scrollY) * .2;
+  const top = Math.floor(scrollY / lh);
+  ctx.textBaseline = 'middle';
+  // current line highlight
+  const cy = cl * lh - scrollY + lh * .5 + 8;
+  ctx.fillStyle = 'rgba(255,255,255,.045)'; ctx.fillRect(0, cy - lh / 2, W, lh);
+  for (let r = top; r <= Math.min(cl, top + rows); r++) {
+    const y = r * lh - scrollY + lh * .5 + 8;
+    ctx.font = `400 ${f}px ${FONT}`;
+    ctx.fillStyle = r === cl ? '#c8ccd4' : '#495162';
+    ctx.textAlign = 'right'; ctx.fillText(String(r + 1), gut - cw * 1.2, y);
+    ctx.textAlign = 'left';
+    const upto = r < cl ? LINES[r].length : Math.min(LINES[r].length, Math.floor(n - lineStart[r]));
+    let last = null;
+    for (let ci = 0; ci < Math.min(upto, cols); ci++) {
+      const c = LINES[r][ci]; if (c.ch === ' ') continue;
+      let x = gut + ci * cw, yy = y;
+      if (glitch > 0 && Math.random() < glitch * .5) { x += (Math.random() - .5) * glitch * 6; yy += (Math.random() - .5) * glitch * 4; }
+      if (c.c !== last) { ctx.fillStyle = c.c; last = c.c; }
+      ctx.fillText(c.ch, x, yy);
+    }
+    if (r === cl && (n < TOTAL || (t * 2 | 0) % 2 === 0)) {
+      ctx.fillStyle = '#528bff'; ctx.fillRect(gut + Math.min(upto, cols) * cw, y - lh * .38, 1.6, lh * .76);
+    }
+  }
+  // status line
+  ctx.fillStyle = '#16181d'; ctx.fillRect(0, H - 20, W, 20);
+  ctx.font = `400 ${Math.max(9, f * .85)}px ${FONT}`; ctx.fillStyle = '#7f8796';
+  ctx.fillText(n < TOTAL ? `bloom.py   Ln ${cl + 1}, Col ${Math.max(1, Math.floor(n - lineStart[cl]))}   Python 3.12` : '▶ python3 bloom.py', 10, H - 10);
+}
+
+function drawBloom(t) {
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const done = SPREAD + FLY;
+  const g = ease((t - done + 1.2) / 1.8);
+  if (glow && g > 0) {
+    ctx.save(); ctx.globalAlpha = .42 * g; ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(glow, 0, 0, W, H); ctx.restore();
+  }
+  const sway = Math.sin(t * .8) * .006;
+  const cx = W / 2, by = H * .5 + Math.min(H * .66, W * 1.12) * .5;
+  for (const p of parts) {
+    const k = inout((t - p.d) / FLY);
+    let x, y, a, col, ch = p.ch, fs = f, bold = false;
+    if (p.t) {
+      const dx = p.t.x - p.sx, dy = p.t.y - p.sy;
+      const arc = Math.sin(k * Math.PI) * p.sw * 60;
+      x = p.sx + dx * k - dy / (Math.hypot(dx, dy) + 1) * arc;
+      y = p.sy + dy * k + dx / (Math.hypot(dx, dy) + 1) * arc;
+      if (k >= 1) { // settled: wave + sway
+        const h = (by - p.t.y);
+        x += h * sway + Math.sin(t * 1.6 + p.t.y * .03) * .5;
+        y += Math.sin(t * 1.3 + p.t.x * .04) * .4;
+      }
+      col = [0, 1, 2].map(i => p.c0[i] + (p.c1[i] - p.c0[i]) * Math.min(1, k * 1.15) | 0);
+      a = p.fade ? 1 : Math.min(1, k * 3);
+      if (k > .7) { ch = p.dense; bold = true; fs = f * 1.12; }
+      if (k >= 1 && Math.random() < .004) p.dense = DENSE[Math.random() * DENSE.length | 0];
+    } else {
+      x = p.sx; y = p.sy - k * 6;
+      col = p.c0; a = 1 - .9 * k;
+    }
+    if (a <= .01) continue;
+    ctx.globalAlpha = a;
+    ctx.font = `${bold ? 700 : 400} ${fs}px ${FONT}`;
+    ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+    ctx.fillText(ch, x, y);
+  }
+  ctx.globalAlpha = 1;
+  // caption
+  const c = ease((t - done - .6) / 1.2);
+  if (c > 0) {
+    const msg = '> process finished with exit code 0 ;)';
+    const shown = msg.slice(0, Math.floor(msg.length * Math.min(1, (t - done - .6) / 1.6)));
+    ctx.font = `400 ${Math.max(11, f * 1.05)}px ${FONT}`;
+    ctx.fillStyle = '#7fd49b'; ctx.globalAlpha = c;
+    ctx.textAlign = 'center'; ctx.fillText(shown, W / 2, H - Math.max(36, H * .05));
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  }
+}
+
+function begin() {
+  setup(); buildTargets();
+  running = true; parts = null; scrollY = 0; t0 = performance.now();
+  requestAnimationFrame(frame);
+}
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!running) return; const was = parts; setup(); buildTargets(); if (was) parts = snapshot(); }, 250); });
+setup(); ctx.fillStyle = '#0d0e12'; ctx.fillRect(0, 0, W, H);
+
+document.getElementById('go').addEventListener('click', () => {
+  startMusic();
+  const el = document.documentElement;
+  try { const r = (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el); r && r.catch && r.catch(() => {}); } catch (e) {}
+  const s = document.getElementById('start'); s.style.opacity = 0;
+  setTimeout(() => { s.remove(); }, 600);
+  setTimeout(begin, 350);
+});
+}
+</script>
+</body>
+</html>
